@@ -99,9 +99,14 @@ impl<W: BitWriter> Encoder<W> {
                         continue;
                     }
                     (b1, _) if absdiff(a1, b1) <= 3 => {
-                        let delta = a1 as i16 - b1 as i16;
+                        // Positions are u32 (rows wider than 32,767 pixels are
+                        // possible), so the difference has to be taken in a
+                        // wider type: `a1 as i16 - b1 as i16` overflows as soon
+                        // as the two straddle 32,767. The branch is only
+                        // entered when |a1 - b1| <= 3, so i8 stays exact.
+                        let delta = (a1 as i64 - b1 as i64) as i8;
                         debug!("  Vertical({})", delta);
-                        let bits = mode::encode(Mode::Vertical(delta as i8)).unwrap();
+                        let bits = mode::encode(Mode::Vertical(delta)).unwrap();
                         writer.write(bits)?;
                         a0 = a1;
                         color = !color;
